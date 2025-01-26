@@ -18,17 +18,15 @@ type extractor struct {
 
 func extractData(line string, extractors []extractor) map[string]string {
 	extractedData := make(map[string]string)
-	hasMatch := false
 
 	for _, ex := range extractors {
 		matches := ex.pattern.FindStringSubmatch(line)
 		if len(matches) > ex.group {
 			extractedData[ex.name] = matches[ex.group]
-			hasMatch = true
 		}
 	}
 
-	if hasMatch {
+	if len(extractedData) > 0 { // hasMatch 변수 제거, 맵 길이로 확인
 		return extractedData
 	}
 	return nil
@@ -54,42 +52,35 @@ func main() {
 	writer := csv.NewWriter(os.Stdout)
 	defer writer.Flush()
 
-	extractors := []extractor{ // 슬라이스로 변경
+	extractors := []extractor{
 		{
 			name:       "date1",
-			headerName: "Date (YYYY-MM-DD)", // 헤더 이름 명시적으로 지정
+			headerName: "Date (Apache)", // 헤더 이름 수정
 			pattern:    regexp.MustCompile(`\[(\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4})\]`),
-			group:      1,
+			group:      1, //대괄호는 버리고 날짜만 추출하기 위해 그룹1번 선택
 		},
 		{
 			name:       "date2",
-			headerName: "Date (Apache)", // 헤더 이름 명시적으로 지정
+			headerName: "Date and Time", // 헤더 이름 수정
 			pattern:    regexp.MustCompile(`(\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?)`),
-			group:      1,
+			group:      1, //날짜와 시간정보가 함께 포함된 그룹1번 선택
 		},
 		{
 			name:       "ip",
-			headerName: "IP Address", // 헤더 이름 명시적으로 지정
+			headerName: "IP Address",
 			pattern:    regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`),
-			group:      0,
+			group:      0, // 매치된 전체 문자열을 나타내는 0번 그룹 선택
 		},
 		{
 			name:       "email",
-			headerName: "Email Address", // 헤더 이름 명시적으로 지정
+			headerName: "Email Address",
 			pattern:    regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`),
-			group:      0,
+			group:      0, // 매치된 전체 문자열을 나타내는 0번 그룹 선택
 		},
-
-		// {
-		// 	name:       "userAgent",
-		// 	headerName: "User Agent",
-		// 	pattern:    regexp.MustCompile(`"([^"]*)"`), // 따옴표로 묶인 user agent 추출
-		// 	group:      1,
-		// },
 	}
 
 	var header []string
-	for _, ex := range extractors { // 헤더 생성 로직 변경
+	for _, ex := range extractors {
 		header = append(header, ex.headerName)
 	}
 	writer.Write(header)
@@ -101,7 +92,7 @@ func main() {
 
 		if extractedData != nil {
 			var row []string
-			for _, ex := range extractors { // 데이터 추출 로직 변경
+			for _, ex := range extractors {
 				row = append(row, extractedData[ex.name])
 			}
 			writer.Write(row)
